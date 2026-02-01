@@ -1,0 +1,142 @@
+{
+  "identity": {
+    "name": "E1",
+    "role": "Anti-AI Designer",
+    "principles": [
+      "Fusion over Imitation",
+      "Emotion First",
+      "Content is King",
+      "Zoom In",
+      "Negative Space",
+      "Contrast"
+    ]
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Space Grotesk, sans-serif",
+      "weights": ["Bold (700)", "Medium (500)"],
+      "usage": "Main titles, section headers, big numbers"
+    },
+    "body": {
+      "font_family": "Satoshi, sans-serif",
+      "weights": ["Regular (400)", "Medium (500)"],
+      "usage": "Paragraphs, UI labels, chat text"
+    },
+    "mono": {
+      "font_family": "JetBrains Mono, monospace",
+      "usage": "Code snippets, math formulas, API keys"
+    }
+  },
+  "colors": {
+    "theme_strategy": "Light Mode Default (Paper-like) with Dark Mode Toggle (Focus Mode)",
+    "palette": {
+      "primary": {
+        "name": "Deep Indigo",
+        "hex": "#4338ca",
+        "usage": "Primary actions, brand identity, active states"
+      },
+      "background": {
+        "light": "#f9fafb",
+        "dark": "#09090b",
+        "paper": "#ffffff"
+      },
+      "text": {
+        "primary": "#111827",
+        "secondary": "#4b5563",
+        "muted": "#9ca3af"
+      },
+      "accents": {
+        "jee_orange": "#f97316",
+        "neet_green": "#10b981",
+        "error": "#ef4444",
+        "success": "#22c55e"
+      }
+    },
+    "gradients": {
+      "jee_gradient": "from-orange-500 to-red-600",
+      "neet_gradient": "from-emerald-400 to-teal-600",
+      "brand_gradient": "from-indigo-500 via-purple-500 to-pink-500"
+    }
+  },
+  "layout": {
+    "grid_system": "Bento Grid (Asymmetric)",
+    "spacing": {
+      "base": "p-6 or p-8 for containers",
+      "gap": "gap-6 or gap-8",
+      "scale": "Tailwind spacing scale (2x standard)"
+    },
+    "container": {
+      "max_width": "max-w-7xl",
+      "alignment": "mx-auto"
+    }
+  },
+  "components": {
+    "buttons": {
+      "style": "Pill-shaped or Soft Rounded (rounded-xl)",
+      "interaction": "Scale down on click (active:scale-95), hover lift",
+      "shadow": "Subtle shadow-sm, no heavy drop shadows"
+    },
+    "cards": {
+      "style": "Flat, 1px border (border-gray-200 dark:border-gray-800)",
+      "hover": "border-indigo-500/50 transition-colors duration-300",
+      "bg": "bg-white dark:bg-zinc-900"
+    },
+    "inputs": {
+      "style": "Large touch targets (h-12), bg-gray-50 dark:bg-zinc-800",
+      "border": "border-transparent focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+    },
+    "chat_interface": {
+      "style": "Centralized, distraction-free",
+      "bubble_user": "bg-indigo-600 text-white rounded-2xl rounded-tr-sm",
+      "bubble_ai": "bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-tl-sm"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-white/20",
+    "noise": "Use subtle noise texture overlay on backgrounds for 'paper' feel",
+    "motion": "Framer Motion for page transitions and staggered list entries"
+  },
+  "images": {
+    "hero_student": {
+      "url": "https://images.unsplash.com/photo-1758611971270-89ce7ed506e1?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Focused student studying with laptop",
+      "usage": "Landing page hero section"
+    },
+    "abstract_bg": {
+      "url": "https://images.unsplash.com/photo-1732197537587-2973f6801969?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Minimalist abstract 3D shape",
+      "usage": "Subtle background element or feature card decoration"
+    },
+    "math_context": {
+      "url": "https://images.unsplash.com/photo-1758685848095-249ad965f4f3?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Math formulas on blackboard",
+      "usage": "Test generator section or 'About' section"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Use .jsx extension for all React components (NOT .tsx).",
+    "Implement a 'Focus Mode' toggle (Light/Dark theme).",
+    "Use 'Space Grotesk' for all headings to give a modern, tech-forward academic look.",
+    "For the Pricing Page, highlight the ₹51 (NEET) and ₹101 (JEE) plans with distinct color coding (Green vs Orange).",
+    "Ensure the Chat Interface is the central focus of the dashboard, similar to ChatGPT or Perplexity, but with student-friendly controls.",
+    "Use the 'Bento Grid' layout for the Student Dashboard to show 'Doubts Solved', 'Tests Taken', and 'Performance' in a visually interesting way.",
+    "Install 'lucide-react' for icons.",
+    "Use 'framer-motion' for smooth entrance animations.",
+    "Do NOT use generic gradients. Use solid colors or subtle noise textures.",
+    "Ensure all interactive elements have 'data-testid' attributes."
+  ],
+  "universal_guidelines": {
+    "do_not": [
+      "Do not use 'Inter' for headings.",
+      "Do not use full-screen gradients.",
+      "Do not use teal (#1B93A4) for dashboards.",
+      "Do not center-align long text blocks."
+    ],
+    "must_do": [
+      "Use 2-3x more spacing than standard (p-8, gap-8).",
+      "Use 'sonner' for toast notifications.",
+      "Use 'Shadcn' logic but customize the styles to match the 'E1' persona.",
+      "Ensure mobile responsiveness (images max-h-[80vh])."
+    ]
+  }
+}
