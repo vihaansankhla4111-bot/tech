@@ -1,0 +1,365 @@
+import requests
+import sys
+import json
+import base64
+from datetime import datetime
+import uuid
+
+class DoubtBotAPITester:
+    def __init__(self, base_url="https://doubtbot-jee-neet.preview.emergentagent.com"):
+        self.base_url = base_url
+        self.session_token = None
+        self.user_id = None
+        self.tests_run = 0
+        self.tests_passed = 0
+        self.test_results = []
+
+    def log_test(self, name, success, details=""):
+        """Log test result"""
+        self.tests_run += 1
+        if success:
+            self.tests_passed += 1
+            print(f"✅ {name} - PASSED")
+        else:
+            print(f"❌ {name} - FAILED: {details}")
+        
+        self.test_results.append({
+            "test": name,
+            "success": success,
+            "details": details
+        })
+
+    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None, files=None):
+        """Run a single API test"""
+        url = f"{self.base_url}/api/{endpoint}"
+        test_headers = {'Content-Type': 'application/json'}
+        
+        if headers:
+            test_headers.update(headers)
+        
+        if self.session_token:
+            test_headers['Authorization'] = f'Bearer {self.session_token}'
+
+        print(f"\n🔍 Testing {name}...")
+        print(f"   URL: {url}")
+        
+        try:
+            if method == 'GET':
+                response = requests.get(url, headers=test_headers)
+            elif method == 'POST':
+                if files:
+                    # Remove Content-Type for multipart/form-data
+                    if 'Content-Type' in test_headers:
+                        del test_headers['Content-Type']
+                    response = requests.post(url, data=data, files=files, headers=test_headers)
+                else:
+                    response = requests.post(url, json=data, headers=test_headers)
+
+            success = response.status_code == expected_status
+            details = f"Status: {response.status_code}"
+            
+            if not success:
+                details += f", Expected: {expected_status}"
+                try:
+                    error_data = response.json()
+                    details += f", Response: {error_data}"
+                except:
+                    details += f", Response: {response.text[:200]}"
+            
+            self.log_test(name, success, details)
+            
+            if success:
+                try:
+                    return response.json()
+                except:
+                    return {"status": "success"}
+            return {}
+
+        except Exception as e:
+            self.log_test(name, False, f"Exception: {str(e)}")
+            return {}
+
+    def setup_test_user(self):
+        """Create test user and session in MongoDB"""
+        print("\n🔧 Setting up test user...")
+        
+        # Generate test user data
+        timestamp = int(datetime.now().timestamp())
+        self.user_id = f"test-user-{timestamp}"
+        self.session_token = f"test_session_{timestamp}"
+        
+        # MongoDB setup command
+        mongo_command = f"""
+        mongosh --eval "
+        use('test_database');
+        var userId = '{self.user_id}';
+        var sessionToken = '{self.session_token}';
+        
+        // Clean existing test data
+        db.users.deleteMany({{user_id: /test-user-/}});
+        db.user_sessions.deleteMany({{session_token: /test_session/}});
+        
+        // Create test user
+        db.users.insertOne({{
+          user_id: userId,
+          email: 'test.user.{timestamp}@example.com',
+          name: 'Test User',
+          picture: 'https://via.placeholder.com/150',
+          subscription_type: 'jee',
+          subscription_status: 'active',
+          subscription_expires_at: new Date(Date.now() + 30*24*60*60*1000),
+          created_at: new Date()
+        }});
+        
+        // Create test session
+        db.user_sessions.insertOne({{
+          user_id: userId,
+          session_token: sessionToken,
+          expires_at: new Date(Date.now() + 7*24*60*60*1000),
+          created_at: new Date()
+        }});
+        
+        print('Test user created: ' + userId);
+        print('Session token: ' + sessionToken);
+        "
+        """
+        
+        import subprocess
+        try:
+            result = subprocess.run(mongo_command, shell=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                print(f"✅ Test user created: {self.user_id}")
+                print(f"✅ Session token: {self.session_token}")
+                return True
+            else:
+                print(f"❌ MongoDB setup failed: {result.stderr}")
+                return False
+        except Exception as e:
+            print(f"❌ MongoDB setup exception: {str(e)}")
+            return False
+
+    def test_auth_endpoints(self):
+        """Test authentication endpoints"""
+        print("\n📋 Testing Authentication Endpoints...")
+        
+        # Test /auth/me with valid session
+        response = self.run_test(
+            "Get Current User",
+            "GET",
+            "auth/me",
+            200
+        )
+        
+        if response and 'user_id' in response:
+            print(f"   User ID: {response['user_id']}")
+            print(f"   Subscription: {response.get('subscription_status', 'N/A')}")
+
+    def test_chat_endpoints(self):
+        """Test chat functionality"""
+        print("\n💬 Testing Chat Endpoints...")
+        
+        # Test sending text message
+        import requests
+        url = f"{self.base_url}/api/chat/send"
+        headers = {'Authorization': f'Bearer {self.session_token}'}
+        data = {'message': 'What is Newton\'s first law?'}
+        
+        print(f"\n🔍 Testing Send Text Message...")
+        print(f"   URL: {url}")
+        
+        try:
+            response = requests.post(url, data=data, headers=headers)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            
+            if success:
+                chat_response = response.json()
+                self.log_test("Send Text Message", True, details)
+            else:
+                try:
+                    error_data = response.json()
+                    details += f", Response: {error_data}"
+                except:
+                    details += f", Response: {response.text[:200]}"
+                self.log_test("Send Text Message", False, details)
+                chat_response = {}
+        except Exception as e:
+            self.log_test("Send Text Message", False, f"Exception: {str(e)}")
+            chat_response = {}
+        
+        chat_id = None
+        if chat_response and 'chat_id' in chat_response:
+            chat_id = chat_response['chat_id']
+            print(f"   Chat ID: {chat_id}")
+            print(f"   AI Response: {chat_response.get('response', 'N/A')[:100]}...")
+        
+        # Test chat history
+        self.run_test(
+            "Get Chat History",
+            "GET",
+            "chat/history",
+            200
+        )
+        
+        # Test get specific chat
+        if chat_id:
+            self.run_test(
+                "Get Specific Chat",
+                "GET",
+                f"chat/{chat_id}",
+                200
+            )
+
+    def test_image_chat(self):
+        """Test image upload in chat"""
+        print("\n🖼️ Testing Image Chat...")
+        
+        # Create a simple test image (1x1 pixel PNG)
+        test_image_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+        test_image_bytes = base64.b64decode(test_image_b64)
+        
+        # Test sending message with image
+        files = {'image': ('test.png', test_image_bytes, 'image/png')}
+        data = {'message': 'What is in this image?'}
+        
+        response = self.run_test(
+            "Send Message with Image",
+            "POST",
+            "chat/send",
+            200,
+            data=data,
+            files=files
+        )
+
+    def test_subscription_endpoints(self):
+        """Test subscription functionality"""
+        print("\n💳 Testing Subscription Endpoints...")
+        
+        # Test create order
+        order_response = self.run_test(
+            "Create Subscription Order",
+            "POST",
+            "subscription/create-order",
+            200,
+            data={"plan_type": "jee"}
+        )
+        
+        subscription_id = None
+        if order_response and 'subscription_id' in order_response:
+            subscription_id = order_response['subscription_id']
+            print(f"   Subscription ID: {subscription_id}")
+            print(f"   Amount: ₹{order_response.get('amount', 0)/100}")
+        
+        # Test verify payment
+        if subscription_id:
+            self.run_test(
+                "Verify Payment",
+                "POST",
+                "subscription/verify",
+                200,
+                data={
+                    "subscription_id": subscription_id,
+                    "payment_id": f"demo_pay_{uuid.uuid4().hex[:8]}"
+                }
+            )
+
+    def test_generator_endpoints(self):
+        """Test test generator functionality"""
+        print("\n📝 Testing Test Generator Endpoints...")
+        
+        # Test generate test
+        test_response = self.run_test(
+            "Generate Test Questions",
+            "POST",
+            "test/generate",
+            200,
+            data={
+                "exam_type": "jee",
+                "subject": "Physics",
+                "num_questions": 5
+            }
+        )
+        
+        if test_response and 'questions' in test_response:
+            questions = test_response['questions']
+            print(f"   Generated {len(questions)} questions")
+            if questions:
+                print(f"   Sample question: {questions[0].get('question', 'N/A')[:100]}...")
+
+    def test_logout(self):
+        """Test logout functionality"""
+        print("\n🚪 Testing Logout...")
+        
+        self.run_test(
+            "Logout User",
+            "POST",
+            "auth/logout",
+            200
+        )
+
+    def cleanup_test_data(self):
+        """Clean up test data from MongoDB"""
+        print("\n🧹 Cleaning up test data...")
+        
+        mongo_command = f"""
+        mongosh --eval "
+        use('test_database');
+        db.users.deleteMany({{user_id: /test-user-/}});
+        db.user_sessions.deleteMany({{session_token: /test_session/}});
+        db.chats.deleteMany({{user_id: /test-user-/}});
+        db.subscriptions.deleteMany({{user_id: /test-user-/}});
+        print('Test data cleaned up');
+        "
+        """
+        
+        import subprocess
+        try:
+            subprocess.run(mongo_command, shell=True, capture_output=True, text=True)
+            print("✅ Test data cleaned up")
+        except Exception as e:
+            print(f"❌ Cleanup failed: {str(e)}")
+
+    def run_all_tests(self):
+        """Run all API tests"""
+        print("🚀 Starting DoubtBot API Testing...")
+        print(f"   Base URL: {self.base_url}")
+        
+        # Setup test user
+        if not self.setup_test_user():
+            print("❌ Failed to setup test user. Exiting.")
+            return 1
+        
+        try:
+            # Run all test suites
+            self.test_auth_endpoints()
+            self.test_chat_endpoints()
+            self.test_image_chat()
+            self.test_subscription_endpoints()
+            self.test_generator_endpoints()
+            self.test_logout()
+            
+        finally:
+            # Always cleanup
+            self.cleanup_test_data()
+        
+        # Print final results
+        print(f"\n📊 Test Results:")
+        print(f"   Tests Run: {self.tests_run}")
+        print(f"   Tests Passed: {self.tests_passed}")
+        print(f"   Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
+        
+        # Print failed tests
+        failed_tests = [t for t in self.test_results if not t['success']]
+        if failed_tests:
+            print(f"\n❌ Failed Tests ({len(failed_tests)}):")
+            for test in failed_tests:
+                print(f"   - {test['test']}: {test['details']}")
+        
+        return 0 if self.tests_passed == self.tests_run else 1
+
+def main():
+    tester = DoubtBotAPITester()
+    return tester.run_all_tests()
+
+if __name__ == "__main__":
+    sys.exit(main())
